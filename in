@@ -47,6 +47,23 @@ else
     exit 1
 fi
 
+if [ "$(jq -r '.source | has("queue_status")' <<< "$payload")" = 'true' ]; then
+    case "$(jq -r '.source.queue_status | type' <<< "$payload")" in
+        ('string')
+            queue_status=("$(jq -r .source.queue_status <<< "$payload")")
+            ;;
+        ('array')
+            mapfile -t queue_status < <(jq -r '.source.queue_status | .[]' <<< "$payload")
+            ;;
+        (*)
+            echo "Invalid input for .source.mp"
+            exit 1
+            ;;
+    esac
+else
+    queue_status=()
+fi
+
 case "$0" in
     ('/opt/resource/in'|'/opt/resource/out')
         cd "$1"
@@ -58,10 +75,20 @@ case "$0" in
     ('/opt/resource/check'|'/opt/resource/in')
         for mp in "${MPs[@]}"; do
             id=$(basename "$mp")
-            files+=("$id".json)
             launchpad-api get "$mp" > "$id".json
+            if [ -z "${queue_status[*]}" ]; then
+                files+=("$id".json)
+            elif [[ "${queue_status[*]}" =~ $(jq -r .queue_status < "$id".json) ]]; then
+                files+=("$id".json)
+            else
+                rm "$id".json
+            fi
         done
-        digest="sha256:$(cat "${files[@]}" | sha256sum | awk '{print $1}')"
+        if [ -n "${files[*]}" ]; then
+            digest="sha256:$(cat "${files[@]}" | sha256sum | awk '{print $1}')"
+        else
+            digest=""
+        fi
         ;;
     ('/opt/resource/out')
         ;;
@@ -69,7 +96,8 @@ esac
 
 case "$0" in
     ('/opt/resource/check')
-        json="$(cat <<ENDLINE
+        if [ -n "$digest" ]; then
+            json="$(cat <<ENDLINE
 [
     {
         "digest": "$digest"
@@ -77,9 +105,13 @@ case "$0" in
 ]
 ENDLINE
 )"
+        else
+            json="[]"
+        fi
         ;;
     ('/opt/resource/in')
-        json="$(cat <<ENDLINE
+        if [ -n "$digest" ]; then
+            json="$(cat <<ENDLINE
 {
     "version": {
         "digest": "$digest"
@@ -87,23 +119,26 @@ ENDLINE
     "metadata": [
 ENDLINE
 )"
-        for mp in "${MPs[@]}"; do
-            json+="$(cat <<ENDLINE
+            for mp in "${MPs[@]}"; do
+                json+="$(cat <<ENDLINE
         {
             "name": "url",
             "value": "https://code.launchpad.net/$mp"
         }
 ENDLINE
 )"
-            if [ "$mp" != "${MPs[-1]}" ]; then
-                json+=","
-            fi
-        done
-        json+="$(cat <<ENDLINE
+                if [ "$mp" != "${MPs[-1]}" ]; then
+                    json+=","
+                fi
+            done
+            json+="$(cat <<ENDLINE
     ]
 }
 ENDLINE
 )"
+        else
+            json="{}"
+        fi
         ;;
 esac
 

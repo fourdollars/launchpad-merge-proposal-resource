@@ -1,6 +1,6 @@
  [![GitHub: fourdollars/launchpad-merge-proposal-resource](https://img.shields.io/badge/GitHub-fourdollars%2Flaunchpad%E2%80%90merge%E2%80%90proposal%E2%80%90resource-darkgreen.svg)](https://github.com/fourdollars/launchpad-merge-proposal-resource/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Bash](https://img.shields.io/badge/Language-Bash-red.svg)](https://www.gnu.org/software/bash/) ![Docker](https://github.com/fourdollars/launchpad-merge-proposal-resource/workflows/Docker/badge.svg) [![Docker Pulls](https://img.shields.io/docker/pulls/fourdollars/launchpad-merge-proposal-resource.svg)](https://hub.docker.com/r/fourdollars/launchpad-merge-proposal-resource/)
 # launchpad-merge-proposal-resource
-[concourse-ci](https://concourse-ci.org/)'s launchpad-merge-proposal-resource to watch the Launchpad merge proposal status changes by using https://api.launchpad.net/devel/#branch_merge_proposal
+[concourse-ci](https://concourse-ci.org/)'s launchpad-merge-proposal-resource to watch the Launchpad merge proposal changes by using https://api.launchpad.net/devel/#branch_merge_proposal
 
 *WIP* *Working In Progress*
 
@@ -42,6 +42,7 @@ resource_types:
 * oauth_token: *optional* for private merge proposal, run `oauth_consumer_key=what_you_like ./launchpad-api` to get it in ~/.config/launchpad/what_you_like.
 * oauth_token_secret: *optional* for private merge proposal, run `oauth_consumer_key=what_you_like ./launchpad-api` to get it in ~/.config/launchpad/what_you_like.
 * mp: **required**, a single merge proposal location or a list of merge proposals (~<author.name>/<project.name>/<branch.name>/+merge/<id>)
+* queue_status: *optional*, to generate the resource version only for the status of "Work in progress", "Needs review", "Approved", "Rejected", "Merged", "Code failed to merge", "Queued", and "Superseded"
 
 ```yaml
 resources:
