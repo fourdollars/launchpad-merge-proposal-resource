@@ -31,7 +31,7 @@ fi
 
 if [ "$(jq -r '.source | has("mp")' <<< "$payload")" = 'true' ]; then
     case "$(jq -r '.source.mp | type' <<< "$payload")" in
-        ('number')
+        ('string')
             MPs=("$(jq -r .source.mp <<< "$payload")")
             ;;
         ('array')
