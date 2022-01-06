@@ -8,7 +8,7 @@ exec 1>&2
 
 payload="$(cat <&0)"
 
-debug=$(jq -r '.source.debug // "verbose"' <<< "$payload")
+debug=$(jq -r '.source.debug // "false"' <<< "$payload")
 
 if [ "$0" = '/opt/resource/out' ]; then
     jq -n '{}' >&3  # noop
