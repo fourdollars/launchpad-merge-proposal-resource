@@ -1,0 +1,110 @@
+#!/bin/bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+exec 3>&1
+exec 1>&2
+
+payload="$(cat <&0)"
+
+debug=$(jq -r '.source.debug // "verbose"' <<< "$payload")
+
+if [ "$0" = '/opt/resource/out' ]; then
+    jq -n '{}' >&3  # noop
+    exit
+fi
+
+oauth_consumer_key=$(jq -r '.source.oauth_consumer_key // ""' <<< "$payload")
+
+if [ -n "$oauth_consumer_key" ]; then
+    oauth_token=$(jq -r '.source.oauth_token // ""' <<< "$payload")
+    oauth_token_secret=$(jq -r '.source.oauth_token_secret // ""' <<< "$payload")
+    export LAUNCHPAD_TOKEN="$oauth_token:$oauth_token_secret:$oauth_consumer_key"
+else
+    export LAUNCHPAD_TOKEN="::"
+fi
+
+if [ "$debug" = "verbose" ]; then
+    set -x
+fi
+
+if [ "$(jq -r '.source | has("mp")' <<< "$payload")" = 'true' ]; then
+    case "$(jq -r '.source.mp | type' <<< "$payload")" in
+        ('number')
+            MPs=("$(jq -r .source.mp <<< "$payload")")
+            ;;
+        ('array')
+            mapfile -t MPs < <(jq -r '.source.mp | .[]' <<< "$payload")
+            ;;
+        (*)
+            echo "Invalid input for .source.mp"
+            exit 1
+            ;;
+    esac
+else
+    echo "You need to provide the merge proposal."
+    exit 1
+fi
+
+case "$0" in
+    ('/opt/resource/in'|'/opt/resource/out')
+        cd "$1"
+        ;;
+esac
+
+files=()
+case "$0" in
+    ('/opt/resource/check'|'/opt/resource/in')
+        for mp in "${MPs[@]}"; do
+            id=$(basename "$mp")
+            files+=("$id".json)
+            launchpad-api get "$mp" > "$id".json
+        done
+        digest="sha256:$(cat "${files[@]}" | sha256sum | awk '{print $1}')"
+        ;;
+    ('/opt/resource/out')
+        ;;
+esac
+
+case "$0" in
+    ('/opt/resource/check')
+        json="$(cat <<ENDLINE
+[
+    {
+        "digest": "$digest"
+    }
+]
+ENDLINE
+)"
+        ;;
+    ('/opt/resource/in')
+        json="$(cat <<ENDLINE
+{
+    "version": {
+        "digest": "$digest"
+    },
+    "metadata": [
+ENDLINE
+)"
+        for mp in "${MPs[@]}"; do
+            json+="$(cat <<ENDLINE
+        {
+            "name": "url",
+            "value": "https://code.launchpad.net/$mp"
+        }
+ENDLINE
+)"
+            if [ "$mp" != "${MPs[-1]}" ]; then
+                json+=","
+            fi
+        done
+        json+="$(cat <<ENDLINE
+    ]
+}
+ENDLINE
+)"
+        ;;
+esac
+
+jq -n "$json" >&3
