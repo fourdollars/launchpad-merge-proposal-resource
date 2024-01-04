@@ -41,8 +41,8 @@ resource_types:
 * oauth_consumer_key: *optional* for private merge proposal, choose what you like.
 * oauth_token: *optional* for private merge proposal, run `oauth_consumer_key=what_you_like ./launchpad-api` to get it in ~/.config/launchpad/what_you_like.
 * oauth_token_secret: *optional* for private merge proposal, run `oauth_consumer_key=what_you_like ./launchpad-api` to get it in ~/.config/launchpad/what_you_like.
-* mp: **required**, a single merge proposal location or a list of merge proposals (~<author.name>/<project.name>/<branch.name>/+merge/<id>)
-* queue_status: *optional*, to generate the resource version only for the status of "Work in progress", "Needs review", "Approved", "Rejected", "Merged", "Code failed to merge", "Queued", and "Superseded"
+* repo: **required**, a git/bzr repo location such as ~oem-solutions-engineers/pc-enablement/+git/oem-scripts against https://code.launchpad.net/~oem-solutions-engineers/pc-enablement/+git/oem-scripts.
+* queue_status: *optional*, to generate the resource version only for the status of "Work in progress", "Needs review" or "Approved"
 
 ```yaml
 resources:
@@ -51,21 +51,7 @@ resources:
   type: launchpad-merge-proposal
   check_every: 10m
   source:
-    mp: ~fourdollars/pc-enablement/+git/oem-scripts/+merge/411902
-```
-
-of
-
-```yaml
-resources:
-- name: merge-proposal
-  icon: merge
-  type: launchpad-merge-proposal
-  check_every: 10m
-  source:
-    mp:
-    - ~fourdollars/pc-enablement/+git/oem-scripts/+merge/413558
-    - ~fourdollars/pc-enablement/+git/oem-scripts/+merge/411902
+    repo: ~oem-solutions-engineers/pc-enablement/+git/oem-scripts
 ```
 
 ### Example
