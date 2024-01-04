@@ -73,8 +73,18 @@ case "$0" in
         payload=$(launchpad-api get "$repo" ws.op==getMergeProposals)
         while read -r self_link; do
             file=$(basename "${self_link}").json
-            files+=("$file")
             jq -r ".entries | .[] | select(.self_link==\"${self_link}\")" <<<"$payload" > "$file"
+            if [ -n "${queue_status[*]}" ]; then
+                if [[ "${queue_status[*]}" =~ $(jq -r ".queue_status" < "$file") ]]; then
+                    files+=("$file")
+                    jq -r .web_link < "$file"
+                else
+                    rm "$file"
+                fi
+            else
+                files+=("$file")
+                jq -r .web_link < "$file"
+            fi
         done < <(jq -r '.entries | .[] | .self_link' <<<"$payload")
         if [ -n "${files[*]}" ]; then
             digest="sha256:$(cat "${files[@]}" | sha256sum | awk '{print $1}')"
