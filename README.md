@@ -43,6 +43,7 @@ resource_types:
 * oauth_token_secret: *optional* for private merge proposal, run `oauth_consumer_key=what_you_like ./launchpad-api` to get it in ~/.config/launchpad/what_you_like.
 * repo: **required**, a git/bzr repo location such as ~oem-solutions-engineers/pc-enablement/+git/oem-scripts against https://code.launchpad.net/~oem-solutions-engineers/pc-enablement/+git/oem-scripts.
 * queue_status: *optional*, to generate the resource version only for the status of "Work in progress", "Needs review" or "Approved"
+* debug: *optional*, set "verbose" to enable the verbose debug message.
 
 ```yaml
 resources:
@@ -52,6 +53,9 @@ resources:
   check_every: 10m
   source:
     repo: ~oem-solutions-engineers/pc-enablement/+git/oem-scripts
+    queue_status:
+    - Needs review
+    - Approved
 ```
 
 ### Example
@@ -75,11 +79,10 @@ jobs:
       run:
         path: sh
         args:
-        - -exc
+        - -ec
         - |
-          apk add jq
+          apk add -q --no-progress jq
           for json in merge-proposal/*.json; do
-            echo "= $json ="
-            jq < "$json"
+            jq -r '.web_link + " " + .queue_status' < "$json"
           done
 ```
